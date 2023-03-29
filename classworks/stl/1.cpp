@@ -23,6 +23,7 @@ int main()
     while (!feof(input))
     {
         c = fgetc(input);
+        c = tolower(c);
         
         if (sep.find(c) == sep.end())
         {
