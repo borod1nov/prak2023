@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <stack>
 #include <fstream>
 
 using namespace std;
@@ -22,14 +23,19 @@ enum lex_type
     _ASSIGN,                             //25
     _COMMA, _SEMICOLON,                  //26, 27
     _LPAREN, _RPAREN,                    //28, 29
-    _LBRACE, _RBRACE                     //30, 31
+    _LBRACE, _RBRACE,                    //30, 31
+
+    //REVERSE POLISH NOTATION(RPN) LEXEMS
+    _RPN_LABEL, _RPN_ADDRESS,            //32, 33
+    _RPN_GO, _RPN_FGO                    //34, 35
 };
 
 map <int, string> lex_type_table =
 {
     {0, "NULL"}, {1, "program"}, {2, "if"}, {3, "else"}, {4, "while"}, {5, "read"}, {6, "write"}, {7, "int"}, {8, "string"},
-    {11, "not"}, {12, "and"}, {13, "or"}, {14, "variable name"}, {15, "+"}, {16, "-"}, {17, "*"}, {18, "/"}, {19, "<"}, {20, ">"}, 
-    {21, "="}, {22, "<="}, {23, ">="}, {24, "!="}, {25, "="}, {26, ","}, {27, ";"}, {28, "("}, {29, ")"}, {30, "{"}, {31, "}"}
+    {11, "not"}, {12, "and"}, {13, "or"}, {14, "variable"}, {15, "+"}, {16, "-"}, {17, "*"}, {18, "/"}, {19, "<"}, {20, ">"}, 
+    {21, "=="}, {22, "<="}, {23, ">="}, {24, "!="}, {25, "="}, {26, ","}, {27, ";"}, {28, "("}, {29, ")"}, {30, "{"}, {31, "}"},
+    {32, "label"}, {33, "address"}, {34, "go"}, {35, "fgo"}
 };
 
 map <string, lex_type> words_table = 
@@ -43,6 +49,37 @@ map <string, lex_type> symbols_table =
     {"+", _PLUS}, {"-", _MINUS}, {"*", _MUL}, {"/", _DIV}, {"<", _LSS}, {">", _GRT}, {"==", _EQL}, {"<=", _LEQ}, {">=", _GEQ},
     {"=", _ASSIGN}, {",", _COMMA}, {";", _SEMICOLON}, {"(", _LPAREN}, {")", _RPAREN}, {"{", _LBRACE}, {"}", _RBRACE}
 };
+
+class Variable
+{
+public:
+    lex_type type;
+    int int_value;
+    string str_value;
+    // Variable(int _int_value)
+    // {
+    //     type = _INT;
+    //     int_value = _int_value;
+    //     str_value = "";
+    // }
+    // Variable(string _str_value)
+    // {
+    //     type = _STRING;
+    //     int_value = 0;
+    //     str_value = _str_value;
+    // }
+    friend ostream & operator<< ( ostream &s, Variable v)
+    {
+        if (v.type == _INT)
+            s << "int        " << v.int_value;
+        else
+            s << "string     " << v.str_value;
+        return s;
+    }
+
+};
+
+map <string, Variable> variables_table;
 
 class Lexeme
 {
@@ -63,14 +100,21 @@ public:
         int_value = _NULL;
         str_value = _str_value;
     }
-    void Print_lex()
+    friend ostream & operator<< ( ostream &s, Lexeme l )
     {
-        if (t == 9)
-            cout << int_value;
-        else if (t == 10)
-            cout << str_value;
+        if (l.t == _INT_VALUE)
+            s << l.int_value;
+        else if (l.t == _STR_VALUE)
+            s << l.str_value;
+        else if (l.t == _VAR_NAME)
+            s << l.str_value << "     (variable)";
+        else if (l.t == _RPN_ADDRESS)
+            s << l.str_value << "     (address)";
+        else if (l.t == _RPN_LABEL)
+            s << "label     " << l.int_value;
         else
-            cout << lex_type_table[t];
+            s << lex_type_table[l.t];
+        return s;
     }
 };
 
@@ -296,12 +340,17 @@ public:
     }
 };
 
+vector <Lexeme> rpn;
+
 class Parser
 {
 public:
     Lexeme l = Lexeme(_PROGRAM);
+    stack <lex_type> st_lex;
+    Variable curr;
+    string curr_var_name;
 
-    void P()
+    void P() //program
     {
         if (l.t == _PROGRAM)
             gl(l);
@@ -311,56 +360,429 @@ public:
             gl(l);
         else
             throw l;
-        D1();
-        S1();
-        if (l.t == _RBRACE)
-            gl(l);
-        else
+        D();
+        B();
+        if (l.t != _NULL)
             throw l;
     }
 
-    void D1()
+    void D() //few descriptions
     {
-        D();
-        while (l.t == _SEMICOLON)
+        while (l.t == _INT || l.t == _STRING)
         {
-            gl(l);
-            D();
+            D1();
         }
     }
 
-    void D()
+    void D1() //description
     {
+        if (l.t == _INT || l.t == _STRING)
+        {
+            curr.type = l.t;
+            gl(l);
+            V();
+            while (l.t == _COMMA)
+            {
+                gl(l);
+                V();
+            }
+        }
+        else throw l;
+        if (l.t == _SEMICOLON)
+        {
+            gl(l);
+        }
+        else throw l;
+    }
+
+    void V() //variable
+    {
+        if (l.t == _VAR_NAME)
+        {
+            curr_var_name = l.str_value;
+            if (variables_table.find(curr_var_name) != variables_table.end())
+                throw "Variable declared twice";
+            gl(l);
+            if (l.t == _ASSIGN)
+            {
+                gl(l);
+                if (l.t == _INT_VALUE || l.t == _STR_VALUE)
+                {
+                    curr.int_value = l.int_value;
+                    curr.str_value = l.str_value;
+                    variables_table[curr_var_name] = curr;
+                    gl(l);
+                }
+                else throw l;
+            }
+            else
+            {
+                curr.int_value = 0;
+                curr.str_value = "";
+                variables_table[curr_var_name] = curr;
+            }
+        }
+        else throw l;
+    }
+
+    void B() //body - few statements
+    {
+        while (l.t != _RBRACE)
+        {
+            S();
+        }
+        gl(l);
+    }
+
+    void S() //statement
+    {
+        int p0, p1, p2, p3;
         if (l.t == _IF)
+        {
             gl(l);
+            if (l.t == _LPAREN)
+            {
+                gl(l);
+                E();
+                check_int_type();
+                p2 = rpn.size();
+                rpn.push_back(Lexeme(_NULL));
+                rpn.push_back(Lexeme(_RPN_FGO));
+                if (l.t == _RPAREN)
+                {
+                    gl(l);
+                    S();
+                    p3 = rpn.size();
+                    rpn.push_back(Lexeme(_NULL));
+                    rpn.push_back(Lexeme(_RPN_GO));
+                    rpn[p2] = Lexeme(_RPN_LABEL, rpn.size());
+                    if (l.t == _ELSE)
+                    {
+                        gl(l);
+                        S();
+                        rpn[p3] = Lexeme(_RPN_LABEL, rpn.size());
+                    }
+                    else throw l;
+                }
+                else throw l;
+            }
+            else throw l;
+        }
+        else if (l.t == _WHILE)
+        {
+            gl(l);
+            if (l.t == _LPAREN)
+            {
+                p0 = rpn.size();
+                gl(l);
+                E();
+                check_int_type();
+                p1 = rpn.size();
+                rpn.push_back(Lexeme(_NULL));
+                rpn.push_back(Lexeme(_RPN_FGO));
+                if (l.t == _RPAREN)
+                {
+                    gl(l);
+                    S();
+                    rpn.push_back(Lexeme(_RPN_LABEL, p0));
+                    rpn.push_back(Lexeme(_RPN_GO));
+                    rpn[p1] = Lexeme(_RPN_LABEL, rpn.size());
+                }
+                else throw l;
+            }
+            else throw l;
+        }
+        else if (l.t == _READ)
+        {
+            gl(l);
+            if (l.t == _LPAREN)
+            {
+                gl(l);
+                if (l.t == _VAR_NAME)
+                {
+                    check_id_in_read();
+                    rpn.push_back(Lexeme(_RPN_ADDRESS, l.str_value));
+                    gl(l);
+                    if (l.t == _RPAREN)
+                    {
+                        gl(l);
+                        if (l.t == _SEMICOLON)
+                        {
+                            gl(l);
+                            rpn.push_back(Lexeme(_READ));
+                        }
+                        else throw l;
+                    }
+                    else throw l;
+                }
+                else throw l;
+            }
+            else throw l;
+        }
+        else if (l.t == _WRITE)
+        {
+            gl(l);
+            if (l.t == _LPAREN)
+            {
+                gl(l);
+                E();
+                while (l.t == _COMMA)
+                {
+                    gl(l);
+                    E();
+                }
+                if (l.t == _RPAREN)
+                {
+                    gl(l);
+                    if (l.t == _SEMICOLON)
+                        {
+                            gl(l);
+                            rpn.push_back(Lexeme(_WRITE));
+                        }
+                    else throw l;
+                }
+                else throw l;
+            }
+            else throw l;
+        }
+        else if (l.t == _VAR_NAME || l.t == _INT_VALUE || l.t == _STR_VALUE)
+        {
+            E();
+            if (l.t == _SEMICOLON)
+            {
+                gl(l);
+            }
+            else throw l;
+        }
+        else if (l.t == _LBRACE)
+        {
+            gl(l);
+            while(l.t != _RBRACE)
+            {
+                S();
+            }
+            gl(l);
+        }
         else
             throw l;
     }
 
-    void S1()
+    void E() //expression
     {
-        if (l.t == _ELSE)
+        if (l.t == _VAR_NAME && array_of_lex[ind].t == _ASSIGN)
+        {
+            check_id();
+            rpn.push_back(Lexeme(_RPN_ADDRESS, l.str_value));
             gl(l);
+            gl(l);
+            E();
+            check_assign();
+            rpn.push_back(Lexeme(_ASSIGN));
+        }
+        else
+            E1();
+    }
+
+    void E1()
+    {
+        E2();
+        while (l.t == _OR)
+        {
+            st_lex.push(l.t);
+            gl(l);
+            E2();
+            check_op();
+        }
+    }
+
+    void E2()
+    {
+        E3();
+        while (l.t == _AND)
+        {
+            st_lex.push(l.t);
+            gl(l);
+            E3();
+            check_op();
+        }
+    }
+
+    void E3()
+    {
+        E4();
+        while (l.t == _LSS || l.t == _GRT || l.t == _LEQ || l.t == _GEQ ||l.t == _EQL || l.t == _NEQ)
+        {
+            st_lex.push(l.t);
+            gl(l);
+            E4();
+            check_op();
+        }
+    }
+    
+    void E4()
+    {
+        E5();
+        while (l.t == _PLUS || l.t == _MINUS)
+        {
+            st_lex.push(l.t);
+            gl(l);
+            E5();
+            check_op();
+        }
+    }
+    
+    void E5()
+    {
+        E6();
+        while (l.t == _MUL || l.t == _DIV)
+        {
+            st_lex.push(l.t);
+            gl(l);
+            E6();
+            check_op();
+        }
+    }
+    
+    void E6()
+    {
+        if (l.t == _VAR_NAME)
+        {
+            check_id();
+            rpn.push_back(Lexeme(_VAR_NAME, l.str_value));
+            gl(l);
+        }
+        else if (l.t == _INT_VALUE)
+        {
+            st_lex.push(_INT);
+            rpn.push_back(l);
+            gl(l);
+        }
+        else if (l.t == _STR_VALUE)
+        {
+            st_lex.push(_STRING);
+            rpn.push_back(l);
+            gl(l);
+        }
+        else if (l.t == _NOT)
+        {
+            gl(l);
+            E6();
+            check_not();
+            rpn.push_back(Lexeme(_NOT));
+        }
+        else if (l.t == _LPAREN)
+        {
+            gl(l);
+            E();
+            if (l.t == _RPAREN)
+                gl(l);
+            else
+                throw l;
+        }
         else
             throw l;
     }
 
+    void check_assign()
+    {
+        lex_type a;
+        a = st_lex.top();
+        st_lex.pop();
+        if (a != st_lex.top())
+            throw "Wrong types in operation '='";
+        else
+            st_lex.pop();
+    }
+    
+    void check_not()
+    {
+        if (st_lex.top() != _INT)
+            throw "Wrong type for operation 'NOT'";
+    }
+
+    void check_op()
+    {
+        lex_type a, op, b;
+        b = st_lex.top();
+        st_lex.pop();
+        op = st_lex.top();
+        st_lex.pop();
+        a = st_lex.top();
+        st_lex.pop();
+        if (a != b)
+        {
+            throw "Wrong types in operation";
+        }
+        else if (a != _INT && a != _STRING)
+        {
+            throw "Wrong types in operation";
+        }
+        else if ((a == _STRING) && (op == _MINUS || op == _MUL || op == _DIV || op == _AND || op == _OR || op == _LEQ || op == _GEQ))
+            throw "This operation isn`t allowed for type 'STRING'";
+        if (a == _STRING && op == _PLUS)
+            st_lex.push(_STRING);
+        else
+            st_lex.push(_INT);
+        rpn.push_back(op);
+    }
+
+    void check_int_type()
+    {
+        if (st_lex.top() != _INT)
+            throw "Expression in IF/WHILE shoud have 'INT' type";
+        else
+            st_lex.pop();
+    }
+    
+    void check_id()
+    {
+        if (variables_table.find(l.str_value) != variables_table.end())
+            st_lex.push(variables_table[l.str_value].type);
+        else
+            throw "Variable wasn`t declared";
+    }
+    
+    void check_id_in_read()
+    {
+        if (variables_table.find(l.str_value) == variables_table.end())
+            throw "Variable wasn`t declared";
+    }
+    
     void Analyze()
     {
         gl(l);
         P();
+        cout << "Excellent" << endl;
     }
 
 };
 
+class Executer
+{
+public:
+    void Execute()
+    {
+        Lexeme l = Lexeme(_PROGRAM);
+        int size = rpn.size();
+        stack <Variable> operand_stack;
+        for (int i = 0; i < size; i++)
+        {
+            l = rpn[i];
+            //
+        }
+    }
+};
+
 int main()
 {
-    Scanner Scanner("ptest.txt");
+    Scanner Scanner("program.txt");
     Parser Parser;
+    Executer Executer;
     try
     {
         Scanner.Scan();
-        //Parser.Analyze();
+        Parser.Analyze();
+        Executer.Execute();
     }
     catch(char c)
     {
@@ -369,17 +791,31 @@ int main()
     }
     catch(Lexeme l)
     {
-        cout << "Incorrect lexeme: ";
-        l.Print_lex();
-        cout << endl;
+        cout << "Incorrect lexeme: " << l << endl;
+        return 1;
+    }
+    catch(const char* error_message)
+    {
+        cout << error_message << endl;
+        return 1;
     }
     
-    ofstream output("lexems.txt");
+    ofstream output1("lexems.txt");
     for (int i = 0; i < array_of_lex.size(); i++)
+        output1 << array_of_lex[i] << endl;
+    output1.close();
+
+    ofstream output2("variables.txt");
+    for (auto it = variables_table.begin(); it != variables_table.end(); ++it)
     {
-        output << array_of_lex[i].t << "          " << array_of_lex[i].int_value << "          " << array_of_lex[i].str_value << endl;
+        output2 << it->first << "     " << it->second << endl;
     }
-    output.close();
+    output2.close();
+
+    ofstream output3("rpn.txt");
+    for (int i = 0; i < rpn.size(); i++)
+        output3 << rpn[i] << endl;
+    output3.close();
     
     array_of_lex.clear();
 }

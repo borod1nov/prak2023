@@ -1,0 +1,6 @@
+a     int        51
+b     int        6
+c     int        0
+x     string     abc
+y     string     
+z     string     abcd

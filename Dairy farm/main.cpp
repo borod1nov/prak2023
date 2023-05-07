@@ -4,33 +4,116 @@
 
 using namespace std;
 
-class Cow
+enum Animal_type {Goat_t = 1, Cow_t, Sheep_t};
+
+class Animal
 {
-    private:
-        string name;
-        bool has_milk;
     public:
-        Cow()
+        string name;
+        Animal_type type;
+        bool has_milk;
+
+        Animal()
         {
-            name = "";
             has_milk = true;
         }
-        Cow(string _name)
-        {
-            name = _name;
-            has_milk = true;
-        }
-        void Milk_cow()
+
+        void Milk()
         {
             has_milk = false;
         }
-        string Name()
+        virtual void Print_info() = 0;
+        virtual void Error_message() = 0;
+};
+
+class Goat: public Animal
+{
+    public:
+        Goat(string _name = "")
         {
-            return name;
+            name = _name;
+            type = Goat_t;
         }
-        bool Has_milk()
+        void Print_info()
         {
-            return has_milk;
+            cout << "type: goat, name: " << name << ", has milk: " << has_milk << endl;
+        }
+        void Error_message()
+        {
+            cout << "Failure: goat " << name << " doesn`t have milk" << endl;
+        }
+};
+
+class Cow: public Animal
+{
+    public:
+        Cow(string _name = "")
+        {
+            name = _name;
+            type = Cow_t;
+        }
+        void Print_info()
+        {
+            cout << "type: cow, name: " << name << ", has milk: " << has_milk << endl;
+        }
+        void Error_message()
+        {
+            cout << "Failure: cow " << name << " doesn`t have milk" << endl;
+        }
+};
+
+class Sheep: public Animal
+{
+    public:
+        Sheep(string _name = "")
+        {
+            name = _name;
+            type = Sheep_t;
+        }
+        void Print_info()
+        {
+            cout << "type: sheep, name: " << name << ", has milk: " << has_milk << endl;
+        }
+        void Error_message()
+        {
+            cout << "Failure: sheep " << name << " doesn`t have milk" << endl;
+        }
+};
+
+class Creator
+{
+    public:
+        virtual Animal* Factory_method(string name) = 0;
+        static void Kill(Animal* animal)
+        {
+            delete animal;
+        }
+};
+
+class Goat_creator: public Creator
+{
+    public:
+        Animal* Factory_method(string name)
+        {
+            return new Goat(name);
+        }
+};
+
+class Cow_creator: public Creator
+{
+    public:
+        Animal* Factory_method(string name)
+        {
+            return new Cow(name);
+        }
+};
+
+class Sheep_creator: public Creator
+{
+    public:
+        Animal* Factory_method(string name)
+        {
+            return new Sheep(name);
         }
 };
 
@@ -51,40 +134,88 @@ class Milk_can
         {
             return is_empty;
         }
+        static Milk_can* Can_maker()
+        {
+            Milk_can* p = new Milk_can();
+            return p;
+        }
+        static void Can_destroyer(Milk_can* can)
+        {
+            delete can;
+        }
+        void Print_info()
+        {
+            cout << "is empty: " << is_empty << endl;
+        }
+        void Error_message()
+        {
+            cout << "Failure: can is full" << endl;
+        }
 
 };
 
 class Milker
 {
     public:
-        void do_milking(Cow & cow, Milk_can & can)
+        void do_milking(Animal* animal, Milk_can* can)
         {
-            if (cow.Has_milk() && can.Is_empty())
+            if (animal->has_milk && can->Is_empty())
             {
-                cow.Milk_cow();
-                can.Fill_milk_can();
+                animal->Milk();
+                can->Fill_milk_can();
             }
-            else if (cow.Has_milk() == false)
+            else if (animal->has_milk == false)
             {
-                cout << "Failure: Cow doesn't have milk" << endl;
+                animal->Error_message();
             }
             else
             {
-                cout << "Failure: Can is full" << endl;
+                can->Error_message();
             }
         }
 };
 
 int main()
 {
-    Cow A("Margo"), A1("Bella");
-    Milk_can B, B1;
+    Goat_creator gc;
+    Cow_creator cc;
+    Sheep_creator sc;
+    
+    vector <Animal*> animals;
+    vector <Milk_can*> cans;
+
+    animals.push_back(cc.Factory_method("Margo"));
+    animals.push_back(gc.Factory_method("Bella"));
+
+    cans.push_back(Milk_can::Can_maker());
+    cans.push_back(Milk_can::Can_maker());
+    cans.push_back(Milk_can::Can_maker());
+    
     Milker C;
-    // cout << A.Has_milk() << endl;
-    // cout << B.Is_empty() << endl;
-    // cout << "~~Milking~~" << endl;
-    C.do_milking(A, B);
-    // cout << A.Has_milk() << endl;
-    // cout << B.Is_empty() << endl;
+
+    cout << "~~Milking №1~~" << endl;
+    C.do_milking(animals[1], cans[0]);
+    animals[1]->Print_info();
+    cans[0]->Print_info();
+    cout << endl;
+
+    cout << "~~Milking №2~~" << endl;
+    C.do_milking(animals[1], cans[1]);
+    animals[1]->Print_info();
+    cans[1]->Print_info();
+    cout << endl;
+
+    cout << "~~Milking №3~~" << endl;
+    C.do_milking(animals[0], cans[0]);
+    animals[0]->Print_info();
+    cans[0]->Print_info();
+    cout << endl;
+
+    for (int i = 0; i < animals.size(); i++)
+        Creator::Kill(animals[i]);
+
+    for (int i = 0; i < cans.size(); i++)
+        Milk_can::Can_destroyer(cans[i]);
+    
 
 }

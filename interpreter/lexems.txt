@@ -1,5 +1,105 @@
-7          0          
-14          0          a
-25          0          
-9          6          
-27          0          
+program
+{
+int
+a     (variable)
+=
+51
+,
+b     (variable)
+=
+6
+,
+c     (variable)
+;
+string
+x     (variable)
+=
+abc
+,
+y     (variable)
+,
+z     (variable)
+=
+abcd
+;
+c     (variable)
+=
+(
+a     (variable)
+/
+b     (variable)
+)
+*
+2
+;
+if
+(
+c     (variable)
+>=
+100
+or
+x     (variable)
+==
+z     (variable)
+)
+{
+read
+(
+y     (variable)
+)
+;
+write
+(
+y     (variable)
+)
+;
+write
+(
+x     (variable)
++
+y     (variable)
++
+z     (variable)
+,
+c     (variable)
+)
+;
+}
+else
+c     (variable)
+=
+a     (variable)
+=
+21
+;
+while
+(
+c     (variable)
+>
+100
+)
+{
+c     (variable)
+=
+c     (variable)
+-
+5
+;
+write
+(
+c     (variable)
+)
+;
+x     (variable)
+=
+x     (variable)
++
+step
+;
+}
+write
+(
+x     (variable)
+)
+;
+}

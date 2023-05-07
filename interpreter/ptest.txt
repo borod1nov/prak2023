@@ -1,1 +1,5 @@
-int a = 6;
+program
+{
+    int x, z, c;
+    c >= 100 or x == z;
+}

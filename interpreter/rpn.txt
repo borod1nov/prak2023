@@ -1,0 +1,55 @@
+c     (address)
+a     (variable)
+b     (variable)
+/
+2
+*
+=
+c     (variable)
+100
+>=
+x     (variable)
+z     (variable)
+==
+or
+label     29
+fgo
+y     (address)
+read
+y     (variable)
+write
+x     (variable)
+y     (variable)
++
+z     (variable)
++
+c     (variable)
+write
+label     34
+go
+c     (address)
+a     (address)
+21
+=
+=
+c     (variable)
+100
+>
+label     53
+fgo
+c     (address)
+c     (variable)
+5
+-
+=
+c     (variable)
+write
+x     (address)
+x     (variable)
+step
++
+=
+label     34
+go
+x     (variable)
+write
