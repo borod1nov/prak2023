@@ -1,5 +1,11 @@
 program
 {
-    int x, z, c;
-    c >= 100 or x == z;
+    int c, a, b = 3;
+    c = a = 21;
+    while (c > 100)
+    {
+        c = c - 5;
+        write (c);
+    }
+    write ("step" == "step");
 }

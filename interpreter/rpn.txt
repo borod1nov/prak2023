@@ -1,33 +1,4 @@
 c     (address)
-a     (variable)
-b     (variable)
-/
-2
-*
-=
-c     (variable)
-100
->=
-x     (variable)
-z     (variable)
-==
-or
-label     29
-fgo
-y     (address)
-read
-y     (variable)
-write
-x     (variable)
-y     (variable)
-+
-z     (variable)
-+
-c     (variable)
-write
-label     34
-go
-c     (address)
 a     (address)
 21
 =
@@ -35,7 +6,7 @@ a     (address)
 c     (variable)
 100
 >
-label     53
+label     19
 fgo
 c     (address)
 c     (variable)
@@ -43,13 +14,10 @@ c     (variable)
 -
 =
 c     (variable)
-write
-x     (address)
-x     (variable)
-step
-+
-=
-label     34
+write     (1 arguments)
+label     5
 go
-x     (variable)
-write
+step
+step
+==
+write     (1 arguments)

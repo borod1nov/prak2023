@@ -27,7 +27,7 @@ enum lex_type
 
     //REVERSE POLISH NOTATION(RPN) LEXEMS
     _RPN_LABEL, _RPN_ADDRESS,            //32, 33
-    _RPN_GO, _RPN_FGO                    //34, 35
+    _RPN_GO, _RPN_FGO ,                  //34, 35
 };
 
 map <int, string> lex_type_table =
@@ -56,18 +56,18 @@ public:
     lex_type type;
     int int_value;
     string str_value;
-    // Variable(int _int_value)
-    // {
-    //     type = _INT;
-    //     int_value = _int_value;
-    //     str_value = "";
-    // }
-    // Variable(string _str_value)
-    // {
-    //     type = _STRING;
-    //     int_value = 0;
-    //     str_value = _str_value;
-    // }
+    Variable(int _int_value = 0)
+    {
+        type = _INT;
+        int_value = _int_value;
+        str_value = "";
+    }
+    Variable(string _str_value)
+    {
+        type = _STRING;
+        int_value = 0;
+        str_value = _str_value;
+    }
     friend ostream & operator<< ( ostream &s, Variable v)
     {
         if (v.type == _INT)
@@ -112,6 +112,8 @@ public:
             s << l.str_value << "     (address)";
         else if (l.t == _RPN_LABEL)
             s << "label     " << l.int_value;
+        else if (l.t == _WRITE && l.int_value != 0)
+            s << "write     (" << l.int_value << " arguments)";
         else
             s << lex_type_table[l.t];
         return s;
@@ -131,7 +133,7 @@ void gl(Lexeme & l)
         ind++;
     }
 
-class Scanner
+class Lexical_analyzer
 {
 public:
     enum state {H, IDENT, NUMB, STR, DIV, COM, COM1, RELAT, NEQ, END, OTHER, ERR};
@@ -145,7 +147,7 @@ public:
         c = fgetc(fp);
     }
     
-    Scanner(const char* filename)
+    Lexical_analyzer(const char* filename)
     {
         fp = fopen(filename, "r");
         gc();
@@ -342,13 +344,19 @@ public:
 
 vector <Lexeme> rpn;
 
-class Parser
+class Syntax_analyzer
 {
 public:
     Lexeme l = Lexeme(_PROGRAM);
     stack <lex_type> st_lex;
     Variable curr;
     string curr_var_name;
+
+    void Parse()
+    {
+        gl(l);
+        P();
+    }
 
     void P() //program
     {
@@ -521,6 +529,7 @@ public:
         }
         else if (l.t == _WRITE)
         {
+            int arg_count = 1;
             gl(l);
             if (l.t == _LPAREN)
             {
@@ -528,6 +537,7 @@ public:
                 E();
                 while (l.t == _COMMA)
                 {
+                    arg_count++;
                     gl(l);
                     E();
                 }
@@ -537,7 +547,7 @@ public:
                     if (l.t == _SEMICOLON)
                         {
                             gl(l);
-                            rpn.push_back(Lexeme(_WRITE));
+                            rpn.push_back(Lexeme(_WRITE, arg_count));
                         }
                     else throw l;
                 }
@@ -685,13 +695,14 @@ public:
 
     void check_assign()
     {
-        lex_type a;
+        lex_type a, b;
         a = st_lex.top();
         st_lex.pop();
-        if (a != st_lex.top())
+        b = st_lex.top();
+        st_lex.pop();
+        if (a != b)
             throw "Wrong types in operation '='";
-        else
-            st_lex.pop();
+        st_lex.push(a);
     }
     
     void check_not()
@@ -747,42 +758,293 @@ public:
         if (variables_table.find(l.str_value) == variables_table.end())
             throw "Variable wasn`t declared";
     }
-    
-    void Analyze()
-    {
-        gl(l);
-        P();
-        cout << "Excellent" << endl;
-    }
-
 };
 
-class Executer
+class Interpreter
 {
 public:
     void Execute()
     {
         Lexeme l = Lexeme(_PROGRAM);
+        int index = 0;
         int size = rpn.size();
+        int i1 = 0, i2 = 0;
+        string s1 = "", s2 = "";
         stack <Variable> operand_stack;
-        for (int i = 0; i < size; i++)
+        while (index < size)
         {
-            l = rpn[i];
-            //
+            l = rpn[index];
+            if (l.t == _INT_VALUE || l.t == _RPN_LABEL)
+            {
+                operand_stack.push(Variable(l.int_value));
+            }
+            else if (l.t == _STR_VALUE || l.t == _RPN_ADDRESS)
+            {
+                operand_stack.push(Variable(l.str_value));
+            }
+            else if (l.t == _VAR_NAME)
+            {
+                if (variables_table[l.str_value].type == _INT)
+                    operand_stack.push(Variable(variables_table[l.str_value].int_value));
+                else
+                    operand_stack.push(Variable(variables_table[l.str_value].str_value));
+            }
+            else if (l.t == _NOT)
+            {
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(! i1));
+            }
+            else if (l.t == _MINUS)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 - i2));
+            }
+            else if (l.t == _MUL)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 * i2));
+            }
+            else if (l.t == _DIV)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                if (i2 == 0)
+                    throw "Division by zero";
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 / i2));
+            }
+            else if (l.t == _GEQ)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 >= i2));
+            }
+            else if (l.t == _GEQ)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 <= i2));
+            }
+            else if (l.t == _AND)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 && i2));
+            }
+            else if (l.t == _OR)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                operand_stack.push(Variable(i1 || i2));
+            }
+            else if (l.t == _RPN_GO)
+            {
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                index = i1;
+                continue;
+            }
+            else if (l.t == _RPN_FGO)
+            {
+                i2 = operand_stack.top().int_value;
+                operand_stack.pop();
+                i1 = operand_stack.top().int_value;
+                operand_stack.pop();
+                if (!i1)
+                    index = i2;
+                else
+                    index++;
+                continue;
+            }
+            else if (l.t == _EQL)
+            {
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    i1 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(i1 == i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    s1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(s1 == s2));
+                }
+            }
+            else if (l.t == _NEQ)
+            {
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    i1 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(i1 != i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    s1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(s1 != s2));
+                }
+            }
+            else if (l.t == _GRT)
+            {
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    i1 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(i1 > i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    s1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(s1 > s2));
+                }
+            }
+            else if (l.t == _LSS)
+            {
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    i1 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(i1 < i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    s1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(s1 < s2));
+                }
+            }
+            else if (l.t == _PLUS)
+            {
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    i1 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(i1 + i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    s1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    operand_stack.push(Variable(s1 + s2));
+                }
+            }
+            else if (l.t == _ASSIGN)
+            {
+                string name1 = "";
+                if (operand_stack.top().type == _INT)
+                {
+                    i2 = operand_stack.top().int_value;
+                    operand_stack.pop();
+                    name1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    variables_table[name1].int_value = i2;
+                    operand_stack.push(Variable(i2));
+                }
+                else
+                {
+                    s2 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    name1 = operand_stack.top().str_value;
+                    operand_stack.pop();
+                    variables_table[name1].str_value = s2;
+                    operand_stack.push(Variable(s2));
+                }
+            }
+            else if (l.t == _WRITE)
+            {
+                stack <Variable> write_stack;
+                for (int j = 0; j < l.int_value; j++)
+                {
+                    write_stack.push(operand_stack.top());
+                    operand_stack.pop();
+                }
+
+                for (int j = 0; j < l.int_value; j++)
+                {
+                    if (write_stack.top().type == _INT)
+                    {
+                        cout << write_stack.top().int_value << endl;
+                        write_stack.pop();
+                    }
+                    else
+                    {
+                        cout << write_stack.top().str_value << endl;
+                        write_stack.pop();
+                    }
+                }
+            }
+            else if (l.t == _READ)
+            {
+                string name1 = "";
+                name1 = operand_stack.top().str_value;
+                operand_stack.pop();
+                if (variables_table[name1].type == _INT)
+                {
+                    cin >> i1;
+                    variables_table[name1].int_value = i1;
+                }
+                else
+                {
+                    cin >> s1;
+                    variables_table[name1].str_value = s1;
+                }
+            }
+            else
+                throw "Unexpected elem in reverse polish notation";
+            index++;
         }
     }
 };
 
-int main()
+int main(int argc, char** argv)
 {
-    Scanner Scanner("program.txt");
-    Parser Parser;
-    Executer Executer;
+    Lexical_analyzer L(argv[1]);
+    Syntax_analyzer S;
+    Interpreter I;
     try
     {
-        Scanner.Scan();
-        Parser.Analyze();
-        Executer.Execute();
+        L.Scan();
+        S.Parse();
+        I.Execute();
     }
     catch(char c)
     {
