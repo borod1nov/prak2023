@@ -1,3 +1,0 @@
-a     int        21
-b     int        3
-c     int        21

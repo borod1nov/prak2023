@@ -1,0 +1,15 @@
+program
+{
+    int c;
+    read (c);
+    if (c >= 4 + 48 * 2)
+        write("c >= 100");
+    else
+        write ("c < 100");
+}
+
+/* input: 101 */
+/* output: c > 100 */
+
+/* input: 99 */
+/* output: c < 100 */

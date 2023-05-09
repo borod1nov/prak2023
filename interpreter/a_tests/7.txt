@@ -1,0 +1,22 @@
+program
+{
+    if ("one" < "two")
+        write("Correct");
+    else
+        write("Incorrect");
+    if ("one" == "one")
+        write("Correct");
+    else
+        write("Incorrect");
+    if ("1" != "one")
+        write("Correct");
+    else
+        write("Incorrect");
+    if (not ("six" > "five"))
+        write("Incorrect");
+    else
+        write("Correct");
+    
+}
+
+/* output: Correct Correct Correct Correct */

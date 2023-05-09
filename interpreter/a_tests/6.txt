@@ -1,0 +1,14 @@
+program
+{
+    int c;
+    string x;
+    c = 5;
+    while (c > 0 and 1 < 2)
+    {
+        x = x + "a";
+        write (x);
+        c = c - 1;
+    }
+}
+
+/* output: a aa aaa aaaa aaaaa */
