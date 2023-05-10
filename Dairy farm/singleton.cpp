@@ -1,18 +1,28 @@
-class OnlyOne
+#include <iostream>
+
+using namespace std;
+
+class Main_singleton
 {
-public:
-        static OnlyOne& Instance()
+    public:
+        static Main_singleton& Get_instance()
         {
-                static OnlyOne theSingleInstance;
-                return theSingleInstance;
+            static Main_singleton instance;
+            return instance;
         }
-private:        
-        OnlyOne(){}
-        OnlyOne(const OnlyOne& root) = delete;
-        OnlyOne& operator=(const OnlyOne&) = delete;
+        void print_address()
+        {
+            cout << this << endl;
+        }
+    private:        
+            Main_singleton() {};
+            Main_singleton(const Main_singleton&) = delete;
+            Main_singleton& operator=(const Main_singleton&) = delete;
+            ~Main_singleton() {}
 };
 
 int main()
 {
-    
+    Main_singleton& instance1 = Main_singleton::Get_instance();
+    instance1.print_address();
 }

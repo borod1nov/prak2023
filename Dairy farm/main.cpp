@@ -175,47 +175,69 @@ class Milker
         }
 };
 
+class Main_singleton
+{
+    public:
+        static Main_singleton& Get_instance()
+        {
+            static Main_singleton instance;
+            return instance;
+        }
+        void print_address()
+        {
+            cout << this << endl;
+        }
+        void main()
+        {
+            Goat_creator gc;
+            Cow_creator cc;
+            Sheep_creator sc;
+            
+            vector <Animal*> animals;
+            vector <Milk_can*> cans;
+
+            animals.push_back(cc.Factory_method("Margo"));
+            animals.push_back(gc.Factory_method("Bella"));
+
+            cans.push_back(Milk_can::Can_maker());
+            cans.push_back(Milk_can::Can_maker());
+            cans.push_back(Milk_can::Can_maker());
+            
+            Milker C;
+
+            cout << "~~Milking №1~~" << endl;
+            C.do_milking(animals[1], cans[0]);
+            animals[1]->Print_info();
+            cans[0]->Print_info();
+            cout << endl;
+
+            cout << "~~Milking №2~~" << endl;
+            C.do_milking(animals[1], cans[1]);
+            animals[1]->Print_info();
+            cans[1]->Print_info();
+            cout << endl;
+
+            cout << "~~Milking №3~~" << endl;
+            C.do_milking(animals[0], cans[0]);
+            animals[0]->Print_info();
+            cans[0]->Print_info();
+            cout << endl;
+
+            for (int i = 0; i < animals.size(); i++)
+                Creator::Kill(animals[i]);
+
+            for (int i = 0; i < cans.size(); i++)
+                Milk_can::Can_destroyer(cans[i]);
+        }
+    private:        
+            Main_singleton() {};
+            Main_singleton(const Main_singleton&) = delete;
+            Main_singleton& operator=(const Main_singleton&) = delete;
+            ~Main_singleton() {}
+};
+
 int main()
 {
-    Goat_creator gc;
-    Cow_creator cc;
-    Sheep_creator sc;
-    
-    vector <Animal*> animals;
-    vector <Milk_can*> cans;
-
-    animals.push_back(cc.Factory_method("Margo"));
-    animals.push_back(gc.Factory_method("Bella"));
-
-    cans.push_back(Milk_can::Can_maker());
-    cans.push_back(Milk_can::Can_maker());
-    cans.push_back(Milk_can::Can_maker());
-    
-    Milker C;
-
-    cout << "~~Milking №1~~" << endl;
-    C.do_milking(animals[1], cans[0]);
-    animals[1]->Print_info();
-    cans[0]->Print_info();
-    cout << endl;
-
-    cout << "~~Milking №2~~" << endl;
-    C.do_milking(animals[1], cans[1]);
-    animals[1]->Print_info();
-    cans[1]->Print_info();
-    cout << endl;
-
-    cout << "~~Milking №3~~" << endl;
-    C.do_milking(animals[0], cans[0]);
-    animals[0]->Print_info();
-    cans[0]->Print_info();
-    cout << endl;
-
-    for (int i = 0; i < animals.size(); i++)
-        Creator::Kill(animals[i]);
-
-    for (int i = 0; i < cans.size(); i++)
-        Milk_can::Can_destroyer(cans[i]);
-    
-
+    Main_singleton& instance1 = Main_singleton::Get_instance();
+    instance1.main();
 }
