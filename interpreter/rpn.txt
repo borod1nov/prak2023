@@ -1,0 +1,19 @@
+i     (variable)
+1000
+<
+label     17
+fgo
+s     (address)
+s     (variable)
+i     (variable)
++
+=
+i     (address)
+i     (variable)
+1
++
+=
+label     0
+go
+s     (variable)
+write     (1 arguments)

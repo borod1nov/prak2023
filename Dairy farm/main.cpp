@@ -239,5 +239,7 @@ class Main_singleton
 int main()
 {
     Main_singleton& instance1 = Main_singleton::Get_instance();
-    instance1.main();
+    instance1.print_address();
+    Main_singleton& instance2 = Main_singleton::Get_instance();
+    instance2.print_address();
 }

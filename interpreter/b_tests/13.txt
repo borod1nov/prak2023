@@ -1,1 +1,11 @@
-/* empty file */
+program
+{
+    int s = 0;
+    int i = 0;
+    while (i < 1000)
+    {
+        s = s + i;
+        i = i + 1;
+    }
+    write(s);
+}

@@ -1,0 +1,38 @@
+program
+{
+int
+s     (variable)
+=
+0
+;
+int
+i     (variable)
+=
+0
+;
+while
+(
+i     (variable)
+<
+1000
+)
+{
+s     (variable)
+=
+s     (variable)
++
+i     (variable)
+;
+i     (variable)
+=
+i     (variable)
++
+1
+;
+}
+write
+(
+s     (variable)
+)
+;
+}
